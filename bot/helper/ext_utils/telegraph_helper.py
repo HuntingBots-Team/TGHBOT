@@ -91,5 +91,5 @@ class TelegraphHelper:
 
 telegraph = TelegraphHelper(
     "@helpcenterbot1",
-    "https://github.com/HuntingBots1/Z-Mirror"
+    "https://github.com/HuntingBots/Z-Mirror"
 )
