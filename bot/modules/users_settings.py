@@ -414,17 +414,13 @@ async def get_user_settings(from_user):
     )
 
 
-@new_task
 async def update_user_settings(query):
-    (
-        msg,
-        button
-    ) = await get_user_settings(query.from_user)
+    msg, button = await get_user_settings(query.from_user)
     user_id = query.from_user.id
     media = (
         f"Thumbnails/{user_id}.jpg"
         if os_path.exists(f"Thumbnails/{user_id}.jpg")
-        else f"{def_media(JAVA.encode()).decode()}"
+        else "https://envs.sh/IL4.jpg"
     )
     await query.message.edit_media(
         media=InputMediaPhoto(
@@ -445,14 +441,11 @@ async def user_settings(client, message):
     if not from_user:
         from_user = await anno_checker(message)
     user_id = from_user.id
-    (
-        msg,
-        button
-    ) = await get_user_settings(from_user)
+    msg, button = await get_user_settings(from_user)
     media = (
         f"Thumbnails/{user_id}.jpg"
         if os_path.exists(f"Thumbnails/{user_id}.jpg")
-        else f"{def_media(JAVA.encode()).decode()}"
+        else "https://envs.sh/IL4.jpg"
     )
     usetMsg = await message.reply_photo(
         media,
@@ -576,10 +569,7 @@ async def set_option(message, option):
     elif option == "excluded_extensions":
         fx = config_dict["EXTENSION_FILTER"].split()
         fx += value.split()
-        value = [
-            "aria2",
-            "!qB"
-        ]
+        value = ["aria2", "!qB"]
         for x in fx:
             x = x.lstrip(".")
             value.append(x.strip().lower())
@@ -793,10 +783,7 @@ async def edit_user_settings(client, query):
             False
         ):
             lprefix = user_dict["lprefix"]
-        elif (
-            "lprefix" not in user_dict
-            and config_dict["LEECH_FILENAME_PREFIX"]
-        ):
+        elif "lprefix" not in user_dict and config_dict["LEECH_FILENAME_PREFIX"]:
             lprefix = config_dict["LEECH_FILENAME_PREFIX"]
         else:
             lprefix = "None"
@@ -1244,10 +1231,8 @@ or use this <a href='https://t.me/mltb_official_channel/177'>script</a> to conve
             f"userset {user_id} close",
             position="footer"
         )
-        sp_msg = (
-            "Send Leech split size.\nDon't add unit(MB, GB), default unit is <b>GB</b>\n"
-            "\nExamples:\nSend 4 for 4GB\nor 0.5 for 512MB\n\nTimeout: 60 sec"
-        )
+        sp_msg = "Send Leech split size.\nDon't add unit(MB, GB), default unit is <b>GB</b>\n"
+        sp_msg += "\nExamples:\nSend 4 for 4GB\nor 0.5 for 512MB\n\nTimeout: 60 sec"
         await edit_message(
             message,
             sp_msg,
@@ -1792,7 +1777,7 @@ Timeout: 60 sec
         )
         await edit_message(
             message,
-            "Send thumbnail layout as WIDTH x HEIGHT (2x2, 3x3, 2x4, 4x4) etc.\n\nTimeout: 60 sec",
+            "Send thumbnail layout as Width x Height (2x2, 3x3, 2x4, 4x4) etc.\n\nTimeout: 60 sec",
             buttons.build_menu(1),
         )
         try:
@@ -2161,4 +2146,4 @@ bot.add_handler( # type: ignore
         edit_user_settings,
         filters=filters.regex("^userset")
     )
-)
+        )
