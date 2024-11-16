@@ -68,7 +68,7 @@ set_event_loop(bot_loop)
 basicConfig(
     format="%(levelname)s | From %(name)s -> %(module)s line no: %(lineno)d | %(message)s",
     handlers=[
-        FileHandler("Zee_Logs.txt"),
+        FileHandler("TGH_Logs.txt"),
         StreamHandler()
     ],
     level=INFO,
@@ -91,7 +91,6 @@ intervals = {
 qb_torrents = {}
 jd_downloads = {}
 nzb_jobs = {}
-
 drives_names = []
 drives_ids = []
 index_urls = []
@@ -100,7 +99,6 @@ global_extension_filter = [
     "!qB"
 ]
 shorteneres_list = []
-
 extra_buttons = {}
 user_data = {}
 aria2_options = {}
@@ -108,7 +106,6 @@ qbit_options = {}
 nzb_options = {}
 queued_dl = {}
 queued_up = {}
-
 non_queued_dl = set()
 non_queued_up = set()
 multi_tags = set()
@@ -128,7 +125,6 @@ jd_lock = Lock()
 cpu_eater_lock = Lock()
 subprocess_lock = Lock()
 same_directory_lock = Lock()
-
 status_dict = {}
 task_dict = {}
 rss_dict = {}
@@ -297,9 +293,9 @@ if len(USER_SESSION_STRING) != 0:
             TELEGRAM_HASH,
             session_string=USER_SESSION_STRING,
             no_updates=True,
-            app_version="@Z_Mirror Session",
-            device_model="@Z_Mirror Bot",
-            system_version="@Z_Mirror Server",
+            app_version="@TGHThingLeech_bot Session",
+            device_model="@TGHThingLeech_bot Bot",
+            system_version="@TGHThingLeech_bot Server",
         ).start()
         IS_PREMIUM_USER = user.me.is_premium # type: ignore
         log_info(f"Successfully logged into @{user.me.username} DC: {user.session.dc_id}.") # type: ignore
@@ -1293,9 +1289,9 @@ bot = TgClient(
     TELEGRAM_API,
     TELEGRAM_HASH,
     bot_token=BOT_TOKEN,
-    app_version="@Z_Mirror Session",
-    device_model="@Z_Mirror Bot",
-    system_version="@Z_Mirror Server",
+    app_version="@TGHThingLeech_bot Session",
+    device_model="@TGHThingLeech_bot Bot",
+    system_version="@TGHThingLeech_bot Server",
 ).start()
 
 BASE += ("oAtiUyppVYRQkuWg8DG2p")
