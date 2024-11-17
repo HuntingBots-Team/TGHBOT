@@ -10,10 +10,7 @@ from asyncio import (
 from nekozee.filters import command
 from nekozee.handlers import MessageHandler
 from os import execl as osexecl
-from signal import (
-    SIGINT,
-    signal
-)
+from signal import SIGINT, signal
 from sys import executable
 from time import time
 
@@ -44,9 +41,9 @@ from .helper.telegram_helper.bot_commands import BotCommands
 from .helper.telegram_helper.filters import CustomFilters
 from .helper.telegram_helper.message_utils import (
     auto_delete_message,
+    send_message,
     edit_message,
-    send_file,
-    send_message
+    send_file
 )
 from .modules import (
     anonymous,
@@ -301,7 +298,7 @@ async def main():
     if config_dict["DATABASE_URL"]:
         await database.db_load()
     await gather(
-        jdownloader.boot(),
+        jdownloader.initiate(),
         sync_to_async(clean_all),
         bot_settings.initiate_search_tools(),
         restart_notification(),
