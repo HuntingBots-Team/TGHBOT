@@ -13,33 +13,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Set up Node.js environment
-        uses: actions/setup-node@v2
-        with:
-          node-version: '16'
+    - name: Set up Node.js environment
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
 
-      - name: Run Mirror Leech bot
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          API_ID: ${{ secrets.API_ID }}
-          API_HASH: ${{ secrets.API_HASH }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          export BOT_TOKEN=${{ secrets.BOT_TOKEN }}
-          export API_ID=${{ secrets.API_ID }}
-          export API_HASH=${{ secrets.API_HASH }}
-          export DATABASE_URL=${{ secrets.DATABASE_URL }}
-          python update.py
+    - name: Run Mirror Leech bot
+      env:
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        API_ID: ${{ secrets.API_ID }}
+        API_HASH: ${{ secrets.API_HASH }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: |
+        export BOT_TOKEN=${{ secrets.BOT_TOKEN }}
+        export API_ID=${{ secrets.API_ID }}
+        export API_HASH=${{ secrets.API_HASH }}
+        export DATABASE_URL=${{ secrets.DATABASE_URL }}
+        python update.py
