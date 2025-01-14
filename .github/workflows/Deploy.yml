@@ -1,4 +1,4 @@
-name: Node.js CI
+name: Z-Mirror Bot CI
 on:
 push:
 branches:
