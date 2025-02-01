@@ -140,7 +140,7 @@ class YtDlp(TaskListener):
         if not isinstance(is_bulk, bool):
             dargs = is_bulk.split(":")
             bulk_start = dargs[0] or None
-            if len(dargs) == 2:
+            if len dargs) == 2:
                 bulk_end = dargs[1] or None
             is_bulk = True
 
@@ -247,7 +247,14 @@ class YtDlp(TaskListener):
 
         options = {
             "usenetrc": True,
-            "cookiefile": "cookies.txt"
+            "cookiefile": "cookies.txt",
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "DNT": "1",
+                "Connection": "keep-alive",
+            }
         }
         if opt:
             yt_opts = opt.split("|")
