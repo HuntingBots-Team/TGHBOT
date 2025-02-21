@@ -1,43 +1,38 @@
-from httpx import AsyncClient
-from asyncio import wait_for, Event
+from asyncio import Event, create_task, wait_for
 from functools import partial
-from nekozee.filters import regex, user
-from nekozee.handlers import CallbackQueryHandler
 from time import time
+
+from httpx import AsyncClient
+from pyrogram.filters import regex, user
+from pyrogram.handlers import CallbackQueryHandler
 from yt_dlp import YoutubeDL
 
-from .. import LOGGER, bot_loop, task_dict_lock, DOWNLOAD_DIR
-from bot import (
-    DOWNLOAD_DIR,
-    bot,
-    config_dict,
-    LOGGER,
-    bot_loop
-)
+from bot import DOWNLOAD_DIR, LOGGER, bot_loop, task_dict_lock
+from bot.core.config_manager import Config
+from bot.helper.aeon_utils.access_check import error_check
 from bot.helper.ext_utils.bot_utils import (
-    sync_to_async,
-    arg_parser,
     COMMAND_USAGE,
+    arg_parser,
+    new_task,
+    sync_to_async,
 )
 from bot.helper.ext_utils.links_utils import is_url
-from bot.helper.listeners.ytdlp_listener import (
-    YtSelection,
-    mdisk,
-    extract_info
+from bot.helper.ext_utils.status_utils import (
+    get_readable_file_size,
+    get_readable_time,
 )
 from bot.helper.listeners.task_listener import TaskListener
-from bot.helper.task_utils.download_utils.yt_dlp_download import YoutubeDLHelper
-from bot.helper.telegram_helper.bot_commands import BotCommands
-from bot.helper.telegram_helper.filters import CustomFilters
+from bot.helper.mirror_leech_utils.download_utils.yt_dlp_download import (
+    YoutubeDLHelper,
+)
+from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.telegram_helper.message_utils import (
     auto_delete_message,
-    deleteMessage,
-    sendMessage,
+    delete_links,
+    delete_message,
+    edit_message,
+    send_message,
 )
-
-from nekozee.filters import command
-from nekozee.handlers import MessageHandler
-
 
 
 @new_task
@@ -92,13 +87,14 @@ class YtSelection:
         pfunc = partial(select_format, obj=self)
         handler = self.listener.client.add_handler(
             CallbackQueryHandler(
-                pfunc, filters=regex("^ytq") & user(self.listener.user_id)
+                pfunc,
+                filters=regex("^ytq") & user(self.listener.user_id),
             ),
             group=-1,
         )
         try:
             await wait_for(self.event.wait(), timeout=self._timeout)
-        except:
+        except Exception:
             await edit_message(self._reply_to, "Timed Out. Task has been cancelled!")
             self.qual = None
             self.listener.is_cancelled = True
@@ -111,7 +107,9 @@ class YtSelection:
         if "entries" in result:
             self._is_playlist = True
             for i in ["144", "240", "360", "480", "720", "1080", "1440", "2160"]:
-                video_format = f"bv*[height<=?{i}][ext=mp4]+ba[ext=m4a]/b[height<=?{i}]"
+                video_format = (
+                    f"bv*[height<=?{i}][ext=mp4]+ba[ext=m4a]/b[height<=?{i}]"
+                )
                 b_data = f"{i}|mp4"
                 self.formats[b_data] = video_format
                 buttons.data_button(f"{i}-mp4", f"ytq {b_data}")
@@ -146,7 +144,9 @@ class YtSelection:
                         ):
                             if item.get("audio_ext") == "m4a":
                                 self._is_m4a = True
-                            b_name = f"{item.get('acodec') or format_id}-{item['ext']}"
+                            b_name = (
+                                f"{item.get('acodec') or format_id}-{item['ext']}"
+                            )
                             v_format = format_id
                         elif item.get("height"):
                             height = item["height"]
@@ -168,7 +168,9 @@ class YtSelection:
                 for b_name, tbr_dict in self.formats.items():
                     if len(tbr_dict) == 1:
                         tbr, v_list = next(iter(tbr_dict.items()))
-                        buttonName = f"{b_name} ({get_readable_file_size(v_list[0])})"
+                        buttonName = (
+                            f"{b_name} ({get_readable_file_size(v_list[0])})"
+                        )
                         buttons.data_button(buttonName, f"ytq sub {b_name} {tbr}")
                     else:
                         buttons.data_button(b_name, f"ytq dict {b_name}")
@@ -180,7 +182,9 @@ class YtSelection:
             self._main_buttons = buttons.build_menu(2)
             msg = f"Choose Video Quality:\nTimeout: {get_readable_time(self._timeout - (time() - self._time))}"
         self._reply_to = await send_message(
-            self.listener.message, msg, self._main_buttons
+            self.listener.message,
+            msg,
+            self._main_buttons,
         )
         await self._event_handler()
         if not self.listener.is_cancelled:
@@ -256,7 +260,7 @@ async def _mdisk(link, name):
     key = link.split("/")[-1]
     async with AsyncClient(verify=False) as client:
         resp = await client.get(
-            f"https://diskuploader.entertainvideo.com/v1/file/cdnurl?param={key}"
+            f"https://diskuploader.entertainvideo.com/v1/file/cdnurl?param={key}",
         )
     if resp.status_code == 200:
         resp_json = resp.json()
@@ -298,7 +302,11 @@ class YtDlp(TaskListener):
         text = self.message.text.split("\n")
         input_list = text[0].split(" ")
         qual = ""
-
+        error_msg, error_button = await error_check(self.message)
+        if error_msg:
+            await delete_links(self.message)
+            error = await send_message(self.message, error_msg, error_button)
+            return await auto_delete_message(error, time=300)
         args = {
             "-doc": False,
             "-med": False,
@@ -325,6 +333,7 @@ class YtDlp(TaskListener):
             "-ca": "",
             "-cv": "",
             "-ns": "",
+            "-md": "",
             "-tl": "",
             "-ff": set(),
         }
@@ -333,7 +342,7 @@ class YtDlp(TaskListener):
 
         try:
             self.multi = int(args["-i"])
-        except:
+        except Exception:
             self.multi = 0
 
         try:
@@ -372,7 +381,10 @@ class YtDlp(TaskListener):
         self.thumbnail_layout = args["-tl"]
         self.as_doc = args["-doc"]
         self.as_med = args["-med"]
-        self.folder_name = f"/{args["-m"]}".rstrip("/") if len(args["-m"]) > 0 else ""
+        self.metadata = args["-md"]
+        self.folder_name = (
+            f"/{args['-m']}".rstrip("/") if len(args["-m"]) > 0 else ""
+        )
         self.bot_trans = args["-bt"]
         self.user_trans = args["-ut"]
 
@@ -411,7 +423,7 @@ class YtDlp(TaskListener):
                                 self.folder_name: {
                                     "total": self.multi,
                                     "tasks": {self.mid},
-                                }
+                                },
                             }
                 elif self.same_dir:
                     async with task_dict_lock:
@@ -419,7 +431,7 @@ class YtDlp(TaskListener):
                             self.same_dir[fd_name]["total"] -= 1
         else:
             await self.init_bulk(input_list, bulk_start, bulk_end, YtDlp)
-            return
+            return None
 
         if len(self.bulk) != 0:
             del self.bulk[0]
@@ -435,10 +447,12 @@ class YtDlp(TaskListener):
 
         if not is_url(self.link):
             await send_message(
-                self.message, COMMAND_USAGE["yt"][0], COMMAND_USAGE["yt"][1]
+                self.message,
+                COMMAND_USAGE["yt"][0],
+                COMMAND_USAGE["yt"][1],
             )
             await self.remove_from_same_dir()
-            return
+            return None
 
         if "mdisk.me" in self.link:
             self.name, self.link = await _mdisk(self.link, self.name)
@@ -448,7 +462,8 @@ class YtDlp(TaskListener):
         except Exception as e:
             await send_message(self.message, e)
             await self.remove_from_same_dir()
-            return
+            return None
+
         options = {"usenetrc": True, "cookiefile": "cookies.txt"}
         if opt:
             for key, value in opt.items():
@@ -458,17 +473,18 @@ class YtDlp(TaskListener):
                     if value.startswith("ba/b-"):
                         qual = value
                         continue
-                    else:
-                        qual = value
+                    qual = value
+
                 options[key] = value
         options["playlist_items"] = "0"
+
         try:
             result = await sync_to_async(extract_info, self.link, options)
         except Exception as e:
             msg = str(e).replace("<", " ").replace(">", " ")
             await send_message(self.message, f"{self.tag} {msg}")
             await self.remove_from_same_dir()
-            return
+            return None
         finally:
             await self.run_multi(input_list, YtDlp)
 
@@ -476,12 +492,14 @@ class YtDlp(TaskListener):
             qual = await YtSelection(self).get_quality(result)
             if qual is None:
                 await self.remove_from_same_dir()
-                return
+                return None
 
         LOGGER.info(f"Downloading with YT-DLP: {self.link}")
         playlist = "entries" in result
         ydl = YoutubeDLHelper(self)
-        await ydl.add_download(path, qual, playlist, opt)
+        create_task(ydl.add_download(path, qual, playlist, opt))  # noqa: RUF006
+        await delete_links(self.message)
+        return None
 
 
 async def ytdl(client, message):
