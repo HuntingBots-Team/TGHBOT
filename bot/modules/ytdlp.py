@@ -7,7 +7,7 @@ from time import time
 from yt_dlp import YoutubeDL
 
 from .. import LOGGER, bot_loop, task_dict_lock, DOWNLOAD_DIR
-from ..web.config_manager import Config
+from .web.config_manager import Config
 from ..helper.ext_utils.bot_utils import (
     new_task,
     sync_to_async,
