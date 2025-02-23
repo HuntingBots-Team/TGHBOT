@@ -1,3 +1,3 @@
-source zee_env/bin/activate
+source tgh_env/bin/activate
 python3 update.py
 python3 -m bot
