@@ -1,15 +1,47 @@
-from logging import FileHandler, StreamHandler, INFO, basicConfig, error as log_error, info as log_info
-from os import path as ospath, environ
-from subprocess import run as srun
-from dotenv import load_dotenv
-from pymongo import MongoClient
+from dotenv import (
+    load_dotenv,
+    dotenv_values
+)
+from logging import (
+    ERROR,
+    INFO,
+    basicConfig,
+    error as log_error,
+    FileHandler,
+    getLogger,
+    info as log_info,
+    StreamHandler,
+)
+from os import (
+    environ,
+    path,
+    remove
+)
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from subprocess import run as urun
+from sys import exit
 
-if ospath.exists('Z_Logs.txt'):
-    with open('Z_Logs.txt', 'r+') as f:
+getLogger("pymongo").setLevel(ERROR)
+
+if path.exists("TGH_Logs.txt"):
+    with open(
+        "TGH_Logs.txt",
+        "r+"
+    ) as f:
         f.truncate(0)
 
-basicConfig(format='%(levelname)s | From %(name)s -> %(module)s line no: %(lineno)d | %(message)s',
-                    handlers=[FileHandler('Z_Logs.txt'), StreamHandler()], level=INFO)
+if path.exists("rlog.txt"):
+    remove("rlog.txt")
+
+basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        FileHandler("TGH_Logs.txt"),
+        StreamHandler()
+    ],
+    level=INFO,
+)
 
 load_dotenv('config.env', override=True)
 
@@ -31,40 +63,63 @@ DATABASE_URL = environ.get('DATABASE_URL', '')
 if len(DATABASE_URL) == 0:
     DATABASE_URL = None
 
-if DATABASE_URL:
+if DATABASE_URL is not None:
     conn = MongoClient(DATABASE_URL)
-    db = conn.z
-    if config_dict := db.settings.config.find_one({'_id': bot_id}):
+    db = conn.zee
+    old_config = db.settings.deployConfig.find_one({'_id': bot_id})
+    config_dict = db.settings.config.find_one({'_id': bot_id})
+    if old_config is not None:
+        del old_config['_id']
+    if (old_config is not None and old_config == dict(dotenv_values('config.env')) or old_config is None) \
+            and config_dict is not None:
         environ['UPSTREAM_REPO'] = config_dict['UPSTREAM_REPO']
         environ['UPSTREAM_BRANCH'] = config_dict['UPSTREAM_BRANCH']
+        environ['UPGRADE_PACKAGES'] = config_dict.get('UPDATE_PACKAGES', 'False')
     conn.close()
 
+UPGRADE_PACKAGES = environ.get('UPGRADE_PACKAGES', 'False') 
+if UPGRADE_PACKAGES.lower() == 'true':
+    packages = [dist.project_name for dist in working_set]
+    scall("uv pip install --system " + ' '.join(packages), shell=True)
+
 UPSTREAM_REPO = environ.get('UPSTREAM_REPO', '')
-log_info(f'Entered upstream repo: {UPSTREAM_REPO}')
 if len(UPSTREAM_REPO) == 0:
-    UPSTREAM_REPO = 'https://github.com/Dawn-India/Z-Mirror'
+    UPSTREAM_REPO = None
 
 UPSTREAM_BRANCH = environ.get('UPSTREAM_BRANCH', '')
-log_info(f'Entered upstream branch: {UPSTREAM_BRANCH}')
 if len(UPSTREAM_BRANCH) == 0:
     UPSTREAM_BRANCH = 'main'
 
-if UPSTREAM_REPO:
+if UPSTREAM_REPO is not None:
     if ospath.exists('.git'):
         srun(["rm", "-rf", ".git"])
 
     update = srun([f"git init -q \
-                     && git config --global user.email z-mirror.tg@github.com \
-                     && git config --global user.name Z-Mirror \
+                     && git config --global user.email doc.adhikari@gmail.com \
+                     && git config --global user.name weebzone \
                      && git add . \
                      && git commit -sm update -q \
                      && git remote add origin {UPSTREAM_REPO} \
                      && git fetch origin -q \
                      && git reset --hard origin/{UPSTREAM_BRANCH} -q"], shell=True)
-    log_info('Fetching latest updates...')
+
+    repo = UPSTREAM_REPO.split('/')
+    UPSTREAM_REPO = f"https://github.com/{repo[-2]}/{repo[-1]}"
     if update.returncode == 0:
-        log_info('Successfully updated...')
-        log_info('Thanks For Using @Z_Mirror')
+        log_info('Successfully updated with latest commits !!')
     else:
-        log_error('Error while getting latest updates.')
-        log_error('Check if entered UPSTREAM_REPO is valid or not!')
+        log_error('Something went Wrong ! Retry or Ask Support !')
+    log_info(f'UPSTREAM_REPO: {UPSTREAM_REPO} | UPSTREAM_BRANCH: {UPSTREAM_BRANCH}')
+
+urun(
+    [
+        "rm",
+        "-rf",
+        "py_generators",
+        "config_sample.env",
+        "Dockerfile",
+        "LICENSE",
+        "README.md",
+        "requirements.txt"
+    ]
+)
