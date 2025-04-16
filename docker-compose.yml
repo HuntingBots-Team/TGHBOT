@@ -1,6 +1,13 @@
 services:
   app:
-    build: .
+    container_name: z-mirror
+    build:
+      context: .
+      dockerfile: Dockerfile
     command: bash start.sh
     restart: on-failure
-    network_mode: "host"
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "8070:8070"
+      - "8090:8090"
